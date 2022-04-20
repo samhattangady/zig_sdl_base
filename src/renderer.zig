@@ -34,7 +34,7 @@ const ShaderData = struct {
     triangle_verts: std.ArrayList(VertexData),
     indices: std.ArrayList(c_uint),
 
-    pub fn init(allocator: *std.mem.Allocator) Self {
+    pub fn init(allocator: std.mem.Allocator) Self {
         return Self{
             .triangle_verts = std.ArrayList(VertexData).init(allocator),
             .indices = std.ArrayList(c_uint).init(allocator),
@@ -63,12 +63,12 @@ pub const Renderer = struct {
     ebo: c.GLuint = 0,
     base_shader: ShaderData,
     text_shader: ShaderData,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     typesetter: *TypeSetter,
     camera: *Camera,
     z_val: f32 = 0.999,
 
-    pub fn init(typesetter: *TypeSetter, camera: *Camera, allocator: *std.mem.Allocator, window_title: []const u8) !Self {
+    pub fn init(typesetter: *TypeSetter, camera: *Camera, allocator: std.mem.Allocator, window_title: []const u8) !Self {
         _ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 16);
         _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_PROFILE_MASK, c.SDL_GL_CONTEXT_PROFILE_CORE);
         _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3); // OpenGL 3+
@@ -111,9 +111,9 @@ pub const Renderer = struct {
         // to see where this gets saved, and whether we need more vaos or vbos or whatever.
         c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), null);
         c.glEnableVertexAttribArray(0);
-        c.glVertexAttribPointer(1, 4, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const c_void, @offsetOf(VertexData, "color")));
+        c.glVertexAttribPointer(1, 4, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const anyopaque, @offsetOf(VertexData, "color")));
         c.glEnableVertexAttribArray(1);
-        c.glVertexAttribPointer(2, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const c_void, @offsetOf(VertexData, "texCoord")));
+        c.glVertexAttribPointer(2, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const anyopaque, @offsetOf(VertexData, "texCoord")));
         c.glEnableVertexAttribArray(2);
         try self.init_shader_program(VERTEX_BASE_FILE, FRAGMENT_ALPHA_FILE, &self.base_shader);
         try self.init_shader_program(VERTEX_BASE_FILE, FRAGMENT_ALPHA_FILE, &self.text_shader);

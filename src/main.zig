@@ -16,10 +16,10 @@ pub fn main() anyerror!void {
     defer c.SDL_Quit();
     const start_ticks = c.SDL_GetTicks();
     var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    var app = App.new(&gpa.allocator, &loading_arena.allocator);
+    var app = App.new(gpa.allocator(), loading_arena.allocator());
     try app.init();
     defer app.deinit();
-    var renderer = try Renderer.init(&app.typesetter, &app.camera, &gpa.allocator, "typeroo");
+    var renderer = try Renderer.init(&app.typesetter, &app.camera, gpa.allocator(), "typeroo");
     defer renderer.deinit();
     loading_arena.deinit();
     const init_ticks = c.SDL_GetTicks();
@@ -34,7 +34,7 @@ pub fn main() anyerror!void {
         }
         var frame_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         const ticks = c.SDL_GetTicks();
-        app.update(ticks, &frame_allocator.allocator);
+        app.update(ticks, frame_allocator.allocator());
         renderer.render_app(ticks, &app);
         frame_allocator.deinit();
     }

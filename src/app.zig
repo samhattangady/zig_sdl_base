@@ -67,13 +67,13 @@ pub const App = struct {
     const Self = @This();
     typesetter: TypeSetter = undefined,
     camera: Camera = .{},
-    allocator: *std.mem.Allocator,
-    arena: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
+    arena: std.mem.Allocator,
     ticks: u32 = 0,
     quit: bool = false,
     inputs: InputState = .{},
 
-    pub fn new(allocator: *std.mem.Allocator, arena: *std.mem.Allocator) Self {
+    pub fn new(allocator: std.mem.Allocator, arena: std.mem.Allocator) Self {
         return Self{
             .allocator = allocator,
             .arena = arena,
@@ -103,7 +103,7 @@ pub const App = struct {
         }
     }
 
-    pub fn update(self: *Self, ticks: u32, arena: *std.mem.Allocator) void {
+    pub fn update(self: *Self, ticks: u32, arena: std.mem.Allocator) void {
         self.ticks = ticks;
         self.arena = arena;
         if (self.inputs.get_key(.space).is_down) {

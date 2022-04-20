@@ -53,12 +53,12 @@ pub const TypeSetter = struct {
     const Self = @This();
     glyph_data: GlyphData = .{},
     texture_data: []u8 = undefined,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     glyphs: std.ArrayList(Glyph),
     camera: *const Camera,
     fonts_data: [NUM_FONTS]FontData = undefined,
 
-    pub fn init(self: *Self, camera: *const Camera, allocator: *std.mem.Allocator) !void {
+    pub fn init(self: *Self, camera: *const Camera, allocator: std.mem.Allocator) !void {
         self.allocator = allocator;
         self.camera = camera;
         self.glyphs = std.ArrayList(Glyph).initCapacity(self.allocator, GLYPH_CAPACITY) catch unreachable;
