@@ -1,6 +1,7 @@
 // File to store all the information about text and things like that one.
 const std = @import("std");
-const c = @import("c.zig");
+const c = @import("platform.zig");
+const constants = @import("constants.zig");
 
 pub const FontType = enum {
     /// Font for debug purposes and things.
@@ -31,7 +32,7 @@ const Vector4_gl = helpers.Vector4_gl;
 const BLACK: Vector4_gl = .{ .x = 24.0 / 255.0, .y = 24.0 / 255.0, .z = 24.0 / 255.0, .w = 1.0 };
 
 const GlyphData = struct {
-    glyphs: [96 * NUM_FONTS]c.stbtt_bakedchar = undefined,
+    glyphs: [96 * NUM_FONTS]stbtt_bakedchar = undefined,
 };
 
 const FontData = struct {
@@ -41,11 +42,31 @@ const FontData = struct {
     num_rows: usize = 0,
 };
 
+const stbtt_aligned_quad = if (constants.WEB_BUILD) struct {
+    x0: f32,
+    y0: f32,
+    s0: f32,
+    t0: f32,
+    x1: f32,
+    y1: f32,
+    s1: f32,
+    t1: f32,
+} else c.stbtt_aligned_quad;
+const stbtt_bakedchar = if (constants.WEB_BUILD) struct {
+    x0: u8,
+    y0: u8,
+    x1: u8,
+    y1: u8,
+    xoff: f32,
+    yoff: f32,
+    xadvance: f32,
+} else c.stbtt_bakedchar;
+
 const Glyph = struct {
     char: u8,
     font: FontType,
     color: Vector4_gl,
-    quad: c.stbtt_aligned_quad,
+    quad: stbtt_aligned_quad,
     z: f32,
 };
 
@@ -78,19 +99,24 @@ pub const TypeSetter = struct {
         // TODO (29 Jul 2021 sam): See if we should be using different API for text loading. The simple
         // one doesn't support multiple fonts easily, and we've had to jump through some hoops.
         self.texture_data = try self.allocator.alloc(u8, FONT_TEX_SIZE * FONT_TEX_SIZE);
-        var row: usize = 0;
-        var glyphs_used: usize = 0;
-        var i: usize = 0;
-        while (i < NUM_FONTS) : (i += 1) {
-            const bitmap_index = row * FONT_TEX_SIZE;
-            const glyph_index = glyphs_used;
-            // TODO (09 Nov 2021 sam): Figure out the failure conditions on this.
-            const num_rows_used = c.stbtt_BakeFontBitmap(FONT_FILES[i], 0, FONT_SIZE, &self.texture_data[bitmap_index], FONT_TEX_SIZE, FONT_TEX_SIZE - @intCast(c_int, row), 32, 96, &self.glyph_data.glyphs[glyph_index]);
-            self.fonts_data[i].type_ = @intToEnum(FontType, @intCast(u2, i));
-            self.fonts_data[i].start_row = row;
-            self.fonts_data[i].start_glyph_index = glyph_index;
-            row += @intCast(usize, num_rows_used);
-            glyphs_used += 96;
+        // @@UnimplementedTrueType
+        if (constants.WEB_BUILD) {
+            return;
+        } else {
+            var row: usize = 0;
+            var glyphs_used: usize = 0;
+            var i: usize = 0;
+            while (i < NUM_FONTS) : (i += 1) {
+                const bitmap_index = row * FONT_TEX_SIZE;
+                const glyph_index = glyphs_used;
+                // TODO (09 Nov 2021 sam): Figure out the failure conditions on this.
+                const num_rows_used = c.stbtt_BakeFontBitmap(FONT_FILES[i], 0, FONT_SIZE, &self.texture_data[bitmap_index], FONT_TEX_SIZE, FONT_TEX_SIZE - @intCast(c_int, row), 32, 96, &self.glyph_data.glyphs[glyph_index]);
+                self.fonts_data[i].type_ = @intToEnum(FontType, @intCast(u2, i));
+                self.fonts_data[i].start_row = row;
+                self.fonts_data[i].start_glyph_index = glyph_index;
+                row += @intCast(usize, num_rows_used);
+                glyphs_used += 96;
+            }
         }
     }
 
@@ -127,6 +153,7 @@ pub const TypeSetter = struct {
 
     // TODO (07 May 2021 sam): Text also scales with the zoom. We don't want that to be the case.
     pub fn draw_char_color_font(self: *Self, pos: Vector2, char: u8, z: f32, camera: *const Camera, color: Vector4_gl, font: FontType) Vector2 {
+        if (constants.WEB_BUILD) return .{};
         _ = z;
         // TODO (20 Sep 2021 sam): Should we be using/saving camera somewhere here?
         _ = camera;
@@ -136,7 +163,8 @@ pub const TypeSetter = struct {
         const inv_tex_height = 1.0 / @intToFloat(f32, FONT_TEX_SIZE - font_data.start_row);
         const round_x = @floor((pos.x + glyph.xoff) + 0.5);
         const round_y = @floor((pos.y + glyph.yoff) + 0.5);
-        var quad: c.stbtt_aligned_quad = .{
+        // @@UnimplementedTrueType
+        var quad: stbtt_aligned_quad = .{
             .x0 = round_x,
             .y0 = round_y,
             .x1 = round_x + @intToFloat(f32, glyph.x1 - glyph.x0),
@@ -226,6 +254,7 @@ pub const TypeSetter = struct {
     }
 
     pub fn draw_text_width_color_font(self: *Self, pos: Vector2, text: []const u8, camera: *const Camera, width: f32, color: Vector4_gl, font: FontType) void {
+        if (constants.WEB_BUILD) return .{};
         var offsets = Vector2{};
         var new_line = false;
         for (text) |char| {
@@ -245,6 +274,7 @@ pub const TypeSetter = struct {
     }
 
     pub fn get_text_width_font(self: *Self, text: []const u8, font: FontType) Vector2 {
+        if (constants.WEB_BUILD) return .{};
         var width: f32 = 0.0;
         for (text) |char| {
             const glyph = self.get_char_glyph(char, font);
@@ -254,6 +284,7 @@ pub const TypeSetter = struct {
     }
 
     pub fn get_text_offset(self: *Self, text: []const u8, width: f32, camera: *const Camera) Vector2 {
+        if (constants.WEB_BUILD) return .{};
         var offsets = Vector2{};
         var new_line = false;
         for (text) |char| {
@@ -272,6 +303,7 @@ pub const TypeSetter = struct {
     // TODO (21 Sep 2021 sam): This could maybe be cleaned up a bit. I've just copy pasted another
     // function here, and it looks like we are overriding the things in most cases...
     pub fn get_text_bounding_box(self: *Self, text: []const u8, width: f32, camera: *const Camera) Vector2 {
+        if (constants.WEB_BUILD) return .{};
         var num_lines: f32 = 1;
         var offsets = Vector2{};
         var new_line = false;

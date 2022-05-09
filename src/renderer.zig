@@ -1,6 +1,6 @@
 const std = @import("std");
-const c = @import("c.zig");
 const constants = @import("constants.zig");
+const c = @import("platform.zig");
 
 const glyph_lib = @import("glyphee.zig");
 const TypeSetter = glyph_lib.TypeSetter;
@@ -15,6 +15,7 @@ const Vector4_gl = helpers.Vector4_gl;
 const Camera = helpers.Camera;
 
 const App = @import("app.zig").App;
+const WEB_BUILD = constants.WEB_BUILD;
 
 const VERTEX_BASE_FILE: [:0]const u8 = @embedFile("../data/shaders/vertex.glsl");
 const FRAGMENT_ALPHA_FILE: [:0]const u8 = @embedFile("../data/shaders/fragment_texalpha.glsl");
@@ -54,9 +55,9 @@ const ShaderData = struct {
 
 pub const Renderer = struct {
     const Self = @This();
-    window: *c.SDL_Window,
-    renderer: *c.SDL_Renderer,
-    gl_context: c.SDL_GLContext,
+    window: if (WEB_BUILD) void else *c.SDL_Window,
+    renderer: if (WEB_BUILD) void else *c.SDL_Renderer,
+    gl_context: if (WEB_BUILD) void else c.SDL_GLContext,
     ticks: u32 = 0,
     vao: c.GLuint = 0,
     vbo: c.GLuint = 0,
@@ -69,24 +70,38 @@ pub const Renderer = struct {
     z_val: f32 = 0.999,
 
     pub fn init(typesetter: *TypeSetter, camera: *Camera, allocator: std.mem.Allocator, window_title: []const u8) !Self {
-        _ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 16);
-        _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_PROFILE_MASK, c.SDL_GL_CONTEXT_PROFILE_CORE);
-        _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3); // OpenGL 3+
-        _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MINOR_VERSION, 3); // OpenGL 3.3
-        const window = c.SDL_CreateWindow(window_title.ptr, c.SDL_WINDOWPOS_CENTERED, c.SDL_WINDOWPOS_CENTERED, @floatToInt(c_int, constants.DEFAULT_WINDOW_WIDTH * camera.window_scale), @floatToInt(c_int, constants.DEFAULT_WINDOW_HEIGHT * camera.window_scale), c.SDL_WINDOW_OPENGL).?;
-        const gl_context = c.SDL_GL_CreateContext(window);
-        _ = c.SDL_GL_MakeCurrent(window, gl_context);
-        _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, c.SDL_GL_GetProcAddress));
-        var self = Self{
-            .window = window,
-            .renderer = undefined,
-            .gl_context = gl_context,
-            .allocator = allocator,
-            .base_shader = ShaderData.init(allocator),
-            .text_shader = ShaderData.init(allocator),
-            .camera = camera,
-            .typesetter = typesetter,
-        };
+        var self: Self = undefined;
+        if (!WEB_BUILD) {
+            _ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 16);
+            _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_PROFILE_MASK, c.SDL_GL_CONTEXT_PROFILE_CORE);
+            _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3); // OpenGL 3+
+            _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MINOR_VERSION, 3); // OpenGL 3.3
+            const window = c.SDL_CreateWindow(window_title.ptr, c.SDL_WINDOWPOS_CENTERED, c.SDL_WINDOWPOS_CENTERED, @floatToInt(c_int, constants.DEFAULT_WINDOW_WIDTH * camera.window_scale), @floatToInt(c_int, constants.DEFAULT_WINDOW_HEIGHT * camera.window_scale), c.SDL_WINDOW_OPENGL).?;
+            const gl_context = c.SDL_GL_CreateContext(window);
+            _ = c.SDL_GL_MakeCurrent(window, gl_context);
+            _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, c.SDL_GL_GetProcAddress));
+            self = Self{
+                .window = window,
+                .renderer = undefined,
+                .gl_context = gl_context,
+                .allocator = allocator,
+                .base_shader = ShaderData.init(allocator),
+                .text_shader = ShaderData.init(allocator),
+                .camera = camera,
+                .typesetter = typesetter,
+            };
+        } else {
+            self = Self{
+                .renderer = undefined,
+                .window = {},
+                .gl_context = {},
+                .allocator = allocator,
+                .base_shader = ShaderData.init(allocator),
+                .text_shader = ShaderData.init(allocator),
+                .camera = camera,
+                .typesetter = typesetter,
+            };
+        }
         try self.init_gl();
         try self.init_main_texture();
         try self.init_text_renderer();
@@ -109,11 +124,11 @@ pub const Renderer = struct {
         // TODO (13 Jun 2021 sam): Figure out where this gets saved. Currently both the vertex types have
         // the same attrib pointers, so it's okay for now, but once we have more programs, we would need
         // to see where this gets saved, and whether we need more vaos or vbos or whatever.
-        c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), null);
+        c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*allowzero const anyopaque, @offsetOf(VertexData, "position")));
         c.glEnableVertexAttribArray(0);
-        c.glVertexAttribPointer(1, 4, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const anyopaque, @offsetOf(VertexData, "color")));
+        c.glVertexAttribPointer(1, 4, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*allowzero const anyopaque, @offsetOf(VertexData, "color")));
         c.glEnableVertexAttribArray(1);
-        c.glVertexAttribPointer(2, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*const anyopaque, @offsetOf(VertexData, "texCoord")));
+        c.glVertexAttribPointer(2, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(VertexData), @intToPtr(*allowzero const anyopaque, @offsetOf(VertexData, "texCoord")));
         c.glEnableVertexAttribArray(2);
         try self.init_shader_program(VERTEX_BASE_FILE, FRAGMENT_ALPHA_FILE, &self.base_shader);
         try self.init_shader_program(VERTEX_BASE_FILE, FRAGMENT_ALPHA_FILE, &self.text_shader);
@@ -125,26 +140,31 @@ pub const Renderer = struct {
         const fragment_shader = c.glCreateShader(c.GL_FRAGMENT_SHADER);
         c.glShaderSource(fragment_shader, 1, &fs, null);
         c.glCompileShader(fragment_shader);
-        var compile_success: c_int = undefined;
-        c.glGetShaderiv(fragment_shader, c.GL_COMPILE_STATUS, &compile_success);
-        if (compile_success == 0) {
-            std.debug.print("Fragment shader compilation failed\n", .{});
-            var compile_message: [1024]u8 = undefined;
-            c.glGetShaderInfoLog(fragment_shader, 1024, null, &compile_message[0]);
-            std.debug.print("{s}\n", .{compile_message});
-            return error.FragmentSyntaxError;
+        if (!WEB_BUILD) {
+            var compile_success: c_int = undefined;
+            c.glGetShaderiv(fragment_shader, c.GL_COMPILE_STATUS, &compile_success);
+            if (compile_success == 0) {
+                helpers.debug_print("Fragment shader compilation failed\n", .{});
+                var compile_message: [1024]u8 = undefined;
+                c.glGetShaderInfoLog(fragment_shader, 1024, null, &compile_message[0]);
+                helpers.debug_print("{s}\n", .{compile_message});
+                return error.FragmentSyntaxError;
+            }
         }
         var vs: ?[*]const u8 = vertex_src.ptr;
         const vertex_shader = c.glCreateShader(c.GL_VERTEX_SHADER);
         c.glShaderSource(vertex_shader, 1, &vs, null);
         c.glCompileShader(vertex_shader);
-        c.glGetShaderiv(vertex_shader, c.GL_COMPILE_STATUS, &compile_success);
-        if (compile_success == 0) {
-            std.debug.print("Vertex shader compilation failed\n", .{});
-            var compile_message: [1024]u8 = undefined;
-            c.glGetShaderInfoLog(vertex_shader, 1024, null, &compile_message[0]);
-            std.debug.print("{s}\n", .{compile_message});
-            return error.VertexSyntaxError;
+        if (!WEB_BUILD) {
+            var compile_success: c_int = undefined;
+            c.glGetShaderiv(vertex_shader, c.GL_COMPILE_STATUS, &compile_success);
+            if (compile_success == 0) {
+                helpers.debug_print("Vertex shader compilation failed\n", .{});
+                var compile_message: [1024]u8 = undefined;
+                c.glGetShaderInfoLog(vertex_shader, 1024, null, &compile_message[0]);
+                helpers.debug_print("{s}\n", .{compile_message});
+                return error.VertexSyntaxError;
+            }
         }
         shader_prog.program = c.glCreateProgram();
         c.glAttachShader(shader_prog.program, vertex_shader);
@@ -204,7 +224,9 @@ pub const Renderer = struct {
         self.ticks = ticks;
         c.glClearColor(0.0, 0.0, 0.0, 1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
-        self.draw_triangle(.{ .x = 100, .y = 20 }, .{ .x = 120, .y = 350 }, .{ .x = 400, .y = 30 }, .{ .x = 0.3, .y = 0.3, .z = 0.6, .w = 1.0 }, self.camera);
+        const posx = app.position.x;
+        const posy = app.position.y;
+        self.draw_triangle(.{ .x = posx - 10, .y = posy - 30 }, .{ .x = posx + 50, .y = posy + 50 }, .{ .x = posx - 40, .y = posy + 30 }, .{ .x = 0.3, .y = 0.3, .z = 0.6, .w = 1.0 }, self.camera);
         self.draw_buffers();
         c.SDL_GL_SwapWindow(self.window);
         self.clear_buffers();

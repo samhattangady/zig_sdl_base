@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c.zig");
+const c = @import("platform.zig");
 const constants = @import("constants.zig");
 
 const glyph_lib = @import("glyphee.zig");
@@ -49,7 +49,7 @@ pub const InputState = struct {
 
     pub fn type_key(self: *Self, k: u8) void {
         if (self.num_typed >= TYPING_BUFFER_SIZE) {
-            std.debug.print("Typing buffer already filled.\n", .{});
+            helpers.debug_print("Typing buffer already filled.\n", .{});
             return;
         }
         self.typed[self.num_typed] = k;
@@ -71,6 +71,7 @@ pub const App = struct {
     arena: std.mem.Allocator,
     ticks: u32 = 0,
     quit: bool = false,
+    position: Vector2 = .{},
     inputs: InputState = .{},
 
     pub fn new(allocator: std.mem.Allocator, arena: std.mem.Allocator) Self {
@@ -115,5 +116,12 @@ pub const App = struct {
             const ypos = 0.5 * constants.DEFAULT_WINDOW_HEIGHT;
             self.typesetter.draw_text_world_centered_font_color(.{ .x = xpos, .y = ypos }, "Press and hold space", .debug, .{ .x = 1, .y = 1, .z = 1, .w = 1 });
         }
+        if (self.inputs.mouse.l_button.is_clicked) {
+            self.position = self.inputs.mouse.current_pos;
+        }
+    }
+
+    pub fn end_frame(self: *Self) void {
+        self.inputs.reset();
     }
 };

@@ -12,14 +12,21 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const windows_build = if (b.option(bool, "windows", "Build for windows")) |w| w else true;
 
+    const web_build = false;
+    var options = b.addOptions();
+    options.addOption(bool, "web_build", web_build);
+
     const exe = b.addExecutable("typeroo", "src/main.zig");
     exe.setTarget(target);
+    exe.addOptions("build_options", options);
     exe.setBuildMode(mode);
     exe.addSystemIncludeDir("src");
-    exe.addSystemIncludeDir("dependencies/gl");
-    exe.addSystemIncludeDir("dependencies/stb_truetype-1.24");
-    exe.addCSourceFile("dependencies/gl/glad.c", &[_][]const u8{"-std=c99"});
-    exe.addCSourceFile("dependencies/stb_truetype-1.24/stb_truetype_impl.c", &[_][]const u8{"-std=c99"});
+    if (!web_build) {
+        exe.addSystemIncludeDir("dependencies/gl");
+        exe.addSystemIncludeDir("dependencies/stb_truetype-1.24");
+        exe.addCSourceFile("dependencies/gl/glad.c", &[_][]const u8{"-std=c99"});
+        exe.addCSourceFile("dependencies/stb_truetype-1.24/stb_truetype_impl.c", &[_][]const u8{"-std=c99"});
+    }
     if (windows_build) {
         exe.addSystemIncludeDir("C:/SDL2/include");
         exe.addLibPath("C:/SDL2/lib/x64");

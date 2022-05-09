@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("c.zig");
+const c = @import("platform.zig");
 
 const constants = @import("constants.zig");
 pub const PI = std.math.pi;
@@ -543,4 +543,11 @@ pub fn tex_remap(y_in: f32, y_height: usize, y_padding: usize) f32 {
     const pixel = @floatToInt(usize, y_in * @intToFloat(f32, y_height));
     const total_height = y_height + y_padding;
     return @intToFloat(f32, pixel + y_padding) / @intToFloat(f32, total_height);
+}
+
+pub fn debug_print(comptime fmt: []const u8, args: anytype) void {
+    // TODO (09 May 2022): use some flags here.
+    if (false) {
+        std.debug.print(fmt, args);
+    }
 }
