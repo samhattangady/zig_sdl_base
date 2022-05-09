@@ -204,6 +204,7 @@ pub const Renderer = struct {
         self.ticks = ticks;
         c.glClearColor(0.0, 0.0, 0.0, 1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
+        self.draw_triangle(.{ .x = 100, .y = 20 }, .{ .x = 120, .y = 350 }, .{ .x = 400, .y = 30 }, .{ .x = 0.3, .y = 0.3, .z = 0.6, .w = 1.0 }, self.camera);
         self.draw_buffers();
         c.SDL_GL_SwapWindow(self.window);
         self.clear_buffers();
@@ -241,9 +242,8 @@ pub const Renderer = struct {
             const glyph = self.typesetter.glyphs.items[i];
             const quad = glyph.quad;
             const color = glyph.color;
-            const z = glyph.z;
-            const p1 = self.screen_pixel_to_gl(.{ .x = quad.x0, .y = quad.y0 }, self.camera.render_size(), z);
-            const p2 = self.screen_pixel_to_gl(.{ .x = quad.x1, .y = quad.y1 }, self.camera.render_size(), z);
+            const p1 = self.screen_pixel_to_gl(.{ .x = quad.x0, .y = quad.y0 }, self.camera.render_size());
+            const p2 = self.screen_pixel_to_gl(.{ .x = quad.x1, .y = quad.y1 }, self.camera.render_size());
             const base = @intCast(c_uint, self.text_shader.triangle_verts.items.len);
             self.text_shader.triangle_verts.append(.{ .position = p1, .texCoord = .{ .x = quad.s0, .y = quad.t0 }, .color = color }) catch unreachable;
             self.text_shader.triangle_verts.append(.{ .position = .{ .x = p2.x, .y = p1.y, .z = 1.0 }, .texCoord = .{ .x = quad.s1, .y = quad.t0 }, .color = color }) catch unreachable;
@@ -254,11 +254,23 @@ pub const Renderer = struct {
         }
     }
 
+    fn draw_triangle(self: *Self, p1: Vector2, p2: Vector2, p3: Vector2, color: Vector4_gl, camera: *const Camera) void {
+        const v1 = self.screen_pixel_to_gl(p1, camera.render_size());
+        const v2 = self.screen_pixel_to_gl(p2, camera.render_size());
+        const v3 = self.screen_pixel_to_gl(p3, camera.render_size());
+        const base = @intCast(c_uint, self.base_shader.triangle_verts.items.len);
+        self.base_shader.triangle_verts.append(.{ .position = v1, .color = color }) catch unreachable;
+        self.base_shader.triangle_verts.append(.{ .position = v2, .color = color }) catch unreachable;
+        self.base_shader.triangle_verts.append(.{ .position = v3, .color = color }) catch unreachable;
+        self.base_shader.indices.append(base + 0) catch unreachable;
+        self.base_shader.indices.append(base + 1) catch unreachable;
+        self.base_shader.indices.append(base + 2) catch unreachable;
+    }
+
     // TODO (30 Sep 2021 sam): We might want to start off by storing all the positions in screen
     // coordinates, and then batch convert them to gl coordinates. Or do that in the vertex shader
     // @@Performance
-    fn screen_pixel_to_gl(self: *Self, screen_pos: Vector2, screen_size: Vector2, z: f32) Vector3_gl {
-        _ = z;
+    fn screen_pixel_to_gl(self: *Self, screen_pos: Vector2, screen_size: Vector2) Vector3_gl {
         const x = ((screen_pos.x / screen_size.x) * 2.0) - 1.0;
         const y = 1.0 - ((screen_pos.y / screen_size.y) * 2.0);
         self.z_val -= 0.00001;
