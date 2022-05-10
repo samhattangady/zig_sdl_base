@@ -57,9 +57,21 @@ export fn web_init() void {
     }
     var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     app = App.new(web_allocator.allocator(), loading_arena.allocator());
+    {
+        const message = "app new done";
+        c.consoleLogS(message, message.len);
+    }
     app.init() catch unreachable;
+    {
+        const message = "app init done";
+        c.consoleLogS(message, message.len);
+    }
     // defer app.deinit();
-    renderer = try Renderer.init(&app.typesetter, &app.camera, web_allocator.allocator(), "typeroo");
+    renderer = Renderer.init(&app.typesetter, &app.camera, web_allocator.allocator(), "typeroo") catch unreachable;
+    {
+        const message = "renderer init done";
+        c.consoleLogS(message, message.len);
+    }
     // defer renderer.deinit();
     web_start_ticks = c.milliTimestamp();
     {
@@ -86,7 +98,7 @@ export fn mouse_motion(x: c_int, y: c_int) void {
 }
 
 export fn mouse_down(button: c_int) void {
-    {
+    if (false) {
         var buffer: [100]u8 = undefined;
         const message = std.fmt.bufPrint(&buffer, "mouse_down = {d}", .{button}) catch unreachable;
         c.consoleLogS(message.ptr, message.len);
@@ -98,7 +110,7 @@ export fn mouse_down(button: c_int) void {
 }
 
 export fn mouse_up(button: c_int) void {
-    {
+    if (false) {
         var buffer: [100]u8 = undefined;
         const message = std.fmt.bufPrint(&buffer, "mouse_up = {d}", .{button}) catch unreachable;
         c.consoleLogS(message.ptr, message.len);

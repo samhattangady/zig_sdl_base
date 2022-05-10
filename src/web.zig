@@ -71,7 +71,7 @@ pub extern fn glDeleteBuffer(_: c_uint) void;
 pub extern fn glBindBuffer(_: c_uint, _: c_uint) void;
 pub extern fn glBufferData(_: c_uint, _: c_longlong, _: ?*const anyopaque, _: c_uint) void;
 pub extern fn glPixelStorei(_: c_uint, _: c_int) void;
-pub extern fn glShaderSource(_: c_uint, _: c_uint, _: *const ?[*]const u8, _: [*c]const c_int) void;
+pub extern fn glShaderSource(_: c_uint, _: c_uint, _: *const ?[*]const u8, _: c_uint) void;
 pub extern fn glCreateShader(_: c_uint) c_uint;
 pub extern fn glCompileShader(_: c_uint) void;
 pub extern fn glAttachShader(_: c_uint, _: c_uint) void;

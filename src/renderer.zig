@@ -101,8 +101,6 @@ pub const Renderer = struct {
                 .camera = camera,
                 .typesetter = typesetter,
             };
-            // BASIC_STEP1
-            return self;
         }
         try self.init_gl();
         try self.init_main_texture();
@@ -140,7 +138,7 @@ pub const Renderer = struct {
         _ = self;
         const fs: ?[*]const u8 = fragment_src.ptr;
         const fragment_shader = c.glCreateShader(c.GL_FRAGMENT_SHADER);
-        c.glShaderSource(fragment_shader, 1, &fs, null);
+        c.glShaderSource(fragment_shader, 1, &fs, fragment_src.len);
         c.glCompileShader(fragment_shader);
         if (!WEB_BUILD) {
             var compile_success: c_int = undefined;
@@ -155,7 +153,7 @@ pub const Renderer = struct {
         }
         var vs: ?[*]const u8 = vertex_src.ptr;
         const vertex_shader = c.glCreateShader(c.GL_VERTEX_SHADER);
-        c.glShaderSource(vertex_shader, 1, &vs, null);
+        c.glShaderSource(vertex_shader, 1, &vs, vertex_src.len);
         c.glCompileShader(vertex_shader);
         if (!WEB_BUILD) {
             var compile_success: c_int = undefined;
@@ -215,6 +213,8 @@ pub const Renderer = struct {
     }
 
     fn init_text_renderer(self: *Self) !void {
+        // BASIC_STEP1
+        if (true) return;
         c.glGenTextures(1, &self.text_shader.texture);
         c.glBindTexture(c.GL_TEXTURE_2D, self.text_shader.texture);
         c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, FONT_TEX_SIZE, FONT_TEX_SIZE, 0, c.GL_RED, c.GL_UNSIGNED_BYTE, &self.typesetter.texture_data[0]);
@@ -222,12 +222,9 @@ pub const Renderer = struct {
     }
 
     pub fn render_app(self: *Self, ticks: u32, app: *App) void {
-        _ = app;
         self.ticks = ticks;
         c.glClearColor(1.0, @intToFloat(f32, ticks) / 3000.0, app.position.x / 600.0, 1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
-        // BASIC_STEP1
-        if (true) return;
         const posx = app.position.x;
         const posy = app.position.y;
         self.draw_triangle(.{ .x = posx - 10, .y = posy - 30 }, .{ .x = posx + 50, .y = posy + 50 }, .{ .x = posx - 40, .y = posy + 30 }, .{ .x = 0.3, .y = 0.3, .z = 0.6, .w = 1.0 }, self.camera);
