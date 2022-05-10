@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Hi from Zig</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="page">
+    <div class="container">
+      <div class="col">
+        <h1>Tetris</h1>
+        <p>A simple tetris clone written in the <a href="http://ziglang.org">Zig</a> programming language, running on
+          WebGL and WASM. <a href="https://github.com/raulgrell/tetris">Source</a>.</p>
+        <p><span class="control-label">← ↓ →</span>Move</p>
+        <p><span class="control-label">↑</span>Rotate CW</p>
+        <p><span class="control-label">Shift</span>Rotate CCW</p>
+        <p><span class="control-label">Ctrl</span>Hold</p>
+        <p><span class="control-label">Space</span>Drop</p>
+        <p><span class="control-label">R</span>Restart</p>
+        <p><span class="control-label">P</span>Pause</p>
+
+        <p>You've scored <span id="score">0</span> point!</p>
+        <p>Your high score is <span id="highscore">0</span></p>
+      </div>
+      <div class="col">
+        <div class="wrapper">
+          <canvas id="canvasgl" width="500" height="660"></canvas>
+          <canvas id="canvas2d" class="overlay" width="500" height="660"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    var $canvas = document.getElementById("canvas2d");
+    var $webgl = document.getElementById("canvasgl");
+  </script>
+  <script>
+
+    const consoleLog = (value, len) => {
+      const view = new Uint8Array(memory.buffer, value, len);
+      let str = '';
+      for (let i = 0; i < len; i++) {
+        str += String.fromCharCode(view[i]);
+      }
+      console.log('zig:', str);
+    };
+    const env = { consoleLogS: consoleLog };
+
+    fetchAndInstantiate('typeroo.wasm', { env }).then(instance => {
+      memory = instance.exports.memory;
+      instance.exports.web_init();
+    });
+
+    function fetchAndInstantiate(url, importObject) {
+      return fetch(url)
+        .then(response => response.arrayBuffer())
+        .then(bytes => WebAssembly.instantiate(bytes, importObject))
+        .then(results => results.instance);
+    }
+  </script>
+</body>
+
+</html>

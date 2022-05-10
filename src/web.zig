@@ -85,3 +85,5 @@ pub const GL_TEXTURE_WRAP_S = 10242;
 pub const GL_CLAMP_TO_EDGE = 33071;
 pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
+
+pub extern fn consoleLogS(_: [*]const u8, _: c_uint) void;

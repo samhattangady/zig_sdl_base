@@ -47,6 +47,10 @@ pub fn main() anyerror!void {
     }
 }
 
-pub fn web_init() void {}
+export fn web_init() void {
+    if (!constants.WEB_BUILD) return;
+    const message = "hello from zig";
+    c.consoleLogS(message, message.len);
+}
 
 pub fn _start() void {}

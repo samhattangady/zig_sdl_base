@@ -12,7 +12,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const windows_build = if (b.option(bool, "windows", "Build for windows")) |w| w else true;
 
-    const web_build = false;
+    const web_build = true;
     var options = b.addOptions();
     options.addOption(bool, "web_build", web_build);
 
