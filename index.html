@@ -12,47 +12,35 @@
   <div class="page">
     <div class="container">
       <div class="col">
-        <h1>Tetris</h1>
-        <p>A simple tetris clone written in the <a href="http://ziglang.org">Zig</a> programming language, running on
-          WebGL and WASM. <a href="https://github.com/raulgrell/tetris">Source</a>.</p>
-        <p><span class="control-label">← ↓ →</span>Move</p>
-        <p><span class="control-label">↑</span>Rotate CW</p>
-        <p><span class="control-label">Shift</span>Rotate CCW</p>
-        <p><span class="control-label">Ctrl</span>Hold</p>
-        <p><span class="control-label">Space</span>Drop</p>
-        <p><span class="control-label">R</span>Restart</p>
-        <p><span class="control-label">P</span>Pause</p>
-
-        <p>You've scored <span id="score">0</span> point!</p>
-        <p>Your high score is <span id="highscore">0</span></p>
-      </div>
-      <div class="col">
         <div class="wrapper">
-          <canvas id="canvasgl" width="500" height="660"></canvas>
-          <canvas id="canvas2d" class="overlay" width="500" height="660"></canvas>
+          <canvas id="webgl_canvas" width="500" height="660"></canvas>
         </div>
       </div>
     </div>
   </div>
   <script>
-    var $canvas = document.getElementById("canvas2d");
-    var $webgl = document.getElementById("canvasgl");
   </script>
+  <script src="interface.js"></script>
   <script>
 
-    const consoleLog = (value, len) => {
-      const view = new Uint8Array(memory.buffer, value, len);
-      let str = '';
-      for (let i = 0; i < len; i++) {
-        str += String.fromCharCode(view[i]);
-      }
-      console.log('zig:', str);
-    };
-    const env = { consoleLogS: consoleLog };
+    const env = { ...api };
 
     fetchAndInstantiate('typeroo.wasm', { env }).then(instance => {
       memory = instance.exports.memory;
       instance.exports.web_init();
+      const web_render = instance.exports.web_render;
+      // document.addEventListener('keydown', e => instance.exports.onKeyDown(e.keyCode, 1));
+      // document.addEventListener('keyup', e => instance.exports.onKeyUp(e.keyCode, 0));
+      document.addEventListener('mousedown', e => instance.exports.mouse_down(e.button));
+      document.addEventListener('mouseup', e => instance.exports.mouse_up(e.button));
+      document.addEventListener('mousemove', e => instance.exports.mouse_motion(e.x, e.y));
+      // document.addEventListener('resize', e => instance.exports.onResize(e.width, e.height));
+
+      function render() {
+        web_render();
+        window.requestAnimationFrame(render);
+      }
+      window.requestAnimationFrame(render);
     });
 
     function fetchAndInstantiate(url, importObject) {

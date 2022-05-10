@@ -240,6 +240,11 @@ pub const Vector2 = struct {
     }
 };
 
+pub const Vector2i = struct {
+    x: i32,
+    y: i32,
+};
+
 pub const Camera = struct {
     const Self = @This();
     size_updated: bool = true,
@@ -406,6 +411,35 @@ pub const SingleInput = struct {
     }
 };
 
+pub const MouseButton = enum {
+    left,
+    right,
+    middle,
+
+    pub fn from_js(b: i32) MouseButton {
+        return switch (b) {
+            0 => .left,
+            1 => .middle,
+            2 => .right,
+            else => .left,
+        };
+    }
+};
+
+pub const MouseEventType = enum {
+    button_up,
+    button_down,
+    scroll,
+    movement,
+};
+
+pub const MouseEvent = union(MouseEventType) {
+    button_up: MouseButton,
+    button_down: MouseButton,
+    scroll: i32,
+    movement: Vector2i,
+};
+
 pub const MouseState = struct {
     const Self = @This();
     current_pos: Vector2 = .{},
@@ -475,6 +509,41 @@ pub const MouseState = struct {
                 self.current_pos = camera.screen_pos_to_world(Vector2.from_int(event.motion.x, event.motion.y));
             },
             else => {},
+        }
+    }
+
+    pub fn web_handle_input(self: *Self, event: MouseEvent, ticks: u32, camera: *Camera) void {
+        switch (event) {
+            .button_down, .button_up => |but| {
+                const button = switch (but) {
+                    .left => &self.l_button,
+                    .right => &self.r_button,
+                    .middle => &self.m_button,
+                };
+                const pos = switch (but) {
+                    .left => &self.l_down_pos,
+                    .right => &self.r_down_pos,
+                    .middle => &self.m_down_pos,
+                };
+                if (event == .button_down) {
+                    // This specific line just feels a bit off. I don't intuitively get it yet.
+                    pos.* = self.current_pos;
+                    self.l_down_pos = self.current_pos;
+                    button.is_down = true;
+                    button.is_clicked = true;
+                    button.down_from = ticks;
+                }
+                if (event == .button_up) {
+                    button.is_down = false;
+                    button.is_released = true;
+                }
+            },
+            .scroll => |amount| {
+                self.wheel_y = amount;
+            },
+            .movement => |pos| {
+                self.current_pos = camera.screen_pos_to_world(Vector2.from_int(pos.x, pos.y));
+            },
         }
     }
 };

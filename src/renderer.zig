@@ -101,6 +101,8 @@ pub const Renderer = struct {
                 .camera = camera,
                 .typesetter = typesetter,
             };
+            // BASIC_STEP1
+            return self;
         }
         try self.init_gl();
         try self.init_main_texture();
@@ -222,21 +224,26 @@ pub const Renderer = struct {
     pub fn render_app(self: *Self, ticks: u32, app: *App) void {
         _ = app;
         self.ticks = ticks;
-        c.glClearColor(0.0, 0.0, 0.0, 1.0);
+        c.glClearColor(1.0, @intToFloat(f32, ticks) / 3000.0, app.position.x / 600.0, 1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
+        // BASIC_STEP1
+        if (true) return;
         const posx = app.position.x;
         const posy = app.position.y;
         self.draw_triangle(.{ .x = posx - 10, .y = posy - 30 }, .{ .x = posx + 50, .y = posy + 50 }, .{ .x = posx - 40, .y = posy + 30 }, .{ .x = 0.3, .y = 0.3, .z = 0.6, .w = 1.0 }, self.camera);
         self.draw_buffers();
-        c.SDL_GL_SwapWindow(self.window);
+        if (!WEB_BUILD) {
+            c.SDL_GL_SwapWindow(self.window);
+        }
         self.clear_buffers();
     }
 
     fn draw_buffers(self: *Self) void {
         c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
         self.draw_shader_buffers(&self.base_shader);
-        self.fill_text_buffers();
-        self.draw_shader_buffers(&self.text_shader);
+        // BASIC_STEP1
+        // self.fill_text_buffers();
+        // self.draw_shader_buffers(&self.text_shader);
     }
 
     fn draw_shader_buffers(self: *Self, shader: *ShaderData) void {
@@ -250,7 +257,7 @@ pub const Renderer = struct {
         c.glBindVertexArray(self.vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
         if (shader.triangle_verts.items.len > 0 and shader.indices.items.len > 0) {
-            c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(VertexData) * @intCast(c_longlong, shader.triangle_verts.items.len), &shader.triangle_verts.items[0], c.GL_DYNAMIC_DRAW);
+            c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(VertexData) * @intCast(c_longlong, shader.triangle_verts.items.len), &shader.triangle_verts.items[0].position.x, c.GL_DYNAMIC_DRAW);
             c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, self.ebo);
             c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(c_uint) * @intCast(c_longlong, shader.indices.items.len), &shader.indices.items[0], c.GL_DYNAMIC_DRAW);
             c.glDrawElements(c.GL_TRIANGLES, @intCast(c_int, shader.indices.items.len), c.GL_UNSIGNED_INT, null);

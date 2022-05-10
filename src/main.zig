@@ -5,13 +5,15 @@ const Renderer = @import("renderer.zig").Renderer;
 const helpers = @import("helpers.zig");
 const constants = @import("constants.zig");
 
-var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
 var app: App = undefined;
 var renderer: Renderer = undefined;
+var web_allocator = if (constants.WEB_BUILD) std.heap.GeneralPurposeAllocator(.{}){} else void;
+var web_start_ticks = if (constants.WEB_BUILD) @as(i64, 0) else void;
+
 pub fn main() anyerror!void {
     if (constants.WEB_BUILD) return;
     // TODO (14 Jul 2021 sam): Figure out how to handle this safety flag.
-    gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer {
         _ = gpa.deinit();
     }
@@ -49,8 +51,60 @@ pub fn main() anyerror!void {
 
 export fn web_init() void {
     if (!constants.WEB_BUILD) return;
-    const message = "hello from zig";
-    c.consoleLogS(message, message.len);
+    {
+        const message = "hello from zig";
+        c.consoleLogS(message, message.len);
+    }
+    var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    app = App.new(web_allocator.allocator(), loading_arena.allocator());
+    app.init() catch unreachable;
+    // defer app.deinit();
+    renderer = try Renderer.init(&app.typesetter, &app.camera, web_allocator.allocator(), "typeroo");
+    // defer renderer.deinit();
+    web_start_ticks = c.milliTimestamp();
+    {
+        var buffer: [100]u8 = undefined;
+        const message = std.fmt.bufPrint(&buffer, "web_start = {d}", .{web_start_ticks}) catch unreachable;
+        c.consoleLogS(message.ptr, message.len);
+    }
 }
 
-pub fn _start() void {}
+export fn web_render() void {
+    const ticks = @intCast(u32, c.milliTimestamp() - web_start_ticks);
+    var frame_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer frame_allocator.deinit();
+    app.update(ticks, frame_allocator.allocator());
+    renderer.render_app(ticks, &app);
+    app.end_frame();
+}
+
+export fn mouse_motion(x: c_int, y: c_int) void {
+    const event = helpers.MouseEvent{
+        .movement = helpers.Vector2i{ .x = x, .y = y },
+    };
+    app.inputs.mouse.web_handle_input(event, app.ticks, &app.camera);
+}
+
+export fn mouse_down(button: c_int) void {
+    {
+        var buffer: [100]u8 = undefined;
+        const message = std.fmt.bufPrint(&buffer, "mouse_down = {d}", .{button}) catch unreachable;
+        c.consoleLogS(message.ptr, message.len);
+    }
+    const event = helpers.MouseEvent{
+        .button_down = helpers.MouseButton.from_js(button),
+    };
+    app.inputs.mouse.web_handle_input(event, app.ticks, &app.camera);
+}
+
+export fn mouse_up(button: c_int) void {
+    {
+        var buffer: [100]u8 = undefined;
+        const message = std.fmt.bufPrint(&buffer, "mouse_up = {d}", .{button}) catch unreachable;
+        c.consoleLogS(message.ptr, message.len);
+    }
+    const event = helpers.MouseEvent{
+        .button_up = helpers.MouseButton.from_js(button),
+    };
+    app.inputs.mouse.web_handle_input(event, app.ticks, &app.camera);
+}
