@@ -1,11 +1,58 @@
-const getString = (ptr) => {
-  // we must find the length of null terminated string
-  const bytes = new Uint8Array(memory.buffer, ptr);
+const bigToUint8Array = (big) => {
+  const big0 = BigInt(0)
+  const big1 = BigInt(1)
+  const big8 = BigInt(8)
+  if (big < big0) {
+    const bits = (BigInt(big.toString(2).length) / big8 + big1) * big8
+    const prefix1 = big1 << bits
+    big += prefix1
+  }
+  let hex = big.toString(16)
+  if (hex.length % 2) {
+    hex = '0' + hex
+  }
+  const len = hex.length / 2
+  const u8 = new Uint8Array(len)
+  let i = 0
+  let j = 0
+  while (i < len) {
+    u8[i] = parseInt(hex.slice(j, j + 2), 16)
+    i += 1
+    j += 2
+  }
+  return u8
+}
+
+const u8ToNumber = (array) => {
+  let number = 0;
+  let pow = 0;
+  for (let i = array.length - 1; i >= 0; i--) {
+    number += array[i] * (256 ** pow);
+    pow += 1;
+  }
+  return number;
+}
+
+const parseWebText = (webText) => {
+  // webText is a struct. We get it in binary as a BigInt. However, since the system
+  // is little endian, we cannot directly read and parse the BigInt as is. We need to
+  // have a littleEndian aware converter. like the one above
+  // webText struct -> { text: u32 (pointer), len: u32 }
+  // after conversion -> { text: last 4 bytes, len: first 1-4 bytes }
+  const bytes = bigToUint8Array(webText);
+  // these are the reverse order of the struct because of the endianness.
+  const start = bytes.length - 4;
+  const len = bytes.slice(0, start);
+  const text = bytes.slice(start, start+4);
+  return {text: u8ToNumber(text), len: u8ToNumber(len)};
+}
+
+const getString = (webText) => {
+  const str = parseWebText(webText);
+  const bytes = new Uint8Array(memory.buffer, str.text, str.len);
   let s = ""
-  for (let i = 0; ; ++i) {
-    const c = String.fromCharCode(bytes[i]);
-    if (c == "") break;
-    s += c;
+  for (let i = 0; i < str.len ; i++) {
+    s += String.fromCharCode(bytes[i]);
   }
   return s;
 }
@@ -67,13 +114,13 @@ const glBlendFunc = (sfactor, dfactor) => {
 }
 
 // might need fix
-const glGetUniformLocation = (programId, namePtr) => {
-  glUniformLocations.push(gl.getUniformLocation(glPrograms[programId], namePtr));
+const glGetUniformLocation = (programId, webText) => {
+  glUniformLocations.push(gl.getUniformLocation(glPrograms[programId], getString(webText)));
   return glUniformLocations.length - 1;
 };
 
-const glUniform1i = (program, v0) => {
-  gl.uniform1i(glPrograms[program], v0);
+const glUniform1i = (uniform, v0) => {
+  gl.uniform1i(glUniformLocations[uniform], glUniformLocations[v0]);
 }
 
 const glCreateVertexArray = () => {
@@ -102,8 +149,17 @@ const glBindBuffer = (target, buffer) => {
 }
 
 const glBufferData = (target, size, data, usage) => {
-  const buffer = new Float32Array(memory.buffer, data, size);
-  gl.bufferData(target, buffer, usage);
+  if (target == 34962) { // GL_ARRAY_BUFFER
+    size = Number(size);
+    const buffer = new Float32Array(memory.buffer, data, size);
+    gl.bufferData(target, buffer, usage);
+  }
+  if (target ==0x8893 ) { // GL_ELEMENT_ARRAY_BUFFER
+    size = Number(size);
+    const buffer = new Uint32Array(memory.buffer, data, size);
+    gl.bufferData(target, buffer, usage);
+  }
+
 }
 
 const glDrawElements = (mode, count, type, offset) => {
@@ -134,8 +190,8 @@ const glGenTextures = (num, dataPtr) => {
   }
 }
 
-const glTexImage2D = (target, level, internalFormat, width, height, border, format, type, dataPtr, dataLen) => {
-  const data = new Uint8Array(memory.buffer, dataPtr, dataLen);
+const glTexImage2D = (target, level, internalFormat, width, height, border, format, type, dataPtr, offset) => {
+  const data = new Uint8Array(memory.buffer, dataPtr, width*height);
   gl.texImage2D(target, level, internalFormat, width, height, border, format, type, data);
 };
 
@@ -152,8 +208,12 @@ const glCreateShader = (type) => {
 const glShaderSource = (shader, count, data, len) => {
   if (count != 1) console.log("we only support count = 1 for glShaderSource");
   const source = new Uint8Array(memory.buffer, data, len);
-  console.log('shader source = ', source);
-  gl.shaderSource(glShaders[shader], source);
+  let str = '';
+  for (let i = 0; i < len; i++) {
+    str += String.fromCharCode(source[i]);
+  }
+  console.log('shader source = ', str);
+  gl.shaderSource(glShaders[shader], str);
 }
 
 const glCompileShader = (shader) => {

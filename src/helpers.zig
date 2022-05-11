@@ -620,3 +620,16 @@ pub fn debug_print(comptime fmt: []const u8, args: anytype) void {
         std.debug.print(fmt, args);
     }
 }
+
+pub const WasmText = extern struct {
+    text: [*]const u8,
+    len: u32,
+};
+
+pub fn handle_text(str: [:0]const u8) if (constants.WEB_BUILD) WasmText else [:0]const u8 {
+    if (constants.WEB_BUILD) {
+        return WasmText{ .text = str.ptr, .len = @intCast(u32, str.len) };
+    } else {
+        return str;
+    }
+}

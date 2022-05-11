@@ -17,14 +17,16 @@ const Camera = helpers.Camera;
 const App = @import("app.zig").App;
 const WEB_BUILD = constants.WEB_BUILD;
 
-const VERTEX_BASE_FILE: [:0]const u8 = @embedFile("../data/shaders/vertex.glsl");
-const FRAGMENT_ALPHA_FILE: [:0]const u8 = @embedFile("../data/shaders/fragment_texalpha.glsl");
+const VERTEX_BASE_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("../data/shaders/web_vertex.glsl") else @embedFile("../data/shaders/vertex.glsl");
+const FRAGMENT_ALPHA_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("../data/shaders/web_fragment_texalpha.glsl") else @embedFile("../data/shaders/fragment_texalpha.glsl");
 
 const VertexData = struct {
     position: Vector3_gl = .{},
     texCoord: Vector2_gl = .{},
     color: Vector4_gl = .{},
 };
+// TODO (11 May 2022 sam): Do this at comptime.
+const NUM_FLOAT_IN_VERTEX_DATA = 9;
 
 const ShaderData = struct {
     const Self = @This();
@@ -138,7 +140,11 @@ pub const Renderer = struct {
         _ = self;
         const fs: ?[*]const u8 = fragment_src.ptr;
         const fragment_shader = c.glCreateShader(c.GL_FRAGMENT_SHADER);
-        c.glShaderSource(fragment_shader, 1, &fs, fragment_src.len);
+        if (!WEB_BUILD) {
+            c.glShaderSource(fragment_shader, 1, &fs, null);
+        } else {
+            c.glShaderSource(fragment_shader, 1, fragment_src.ptr, fragment_src.len);
+        }
         c.glCompileShader(fragment_shader);
         if (!WEB_BUILD) {
             var compile_success: c_int = undefined;
@@ -153,7 +159,11 @@ pub const Renderer = struct {
         }
         var vs: ?[*]const u8 = vertex_src.ptr;
         const vertex_shader = c.glCreateShader(c.GL_VERTEX_SHADER);
-        c.glShaderSource(vertex_shader, 1, &vs, vertex_src.len);
+        if (!WEB_BUILD) {
+            c.glShaderSource(vertex_shader, 1, &vs, null);
+        } else {
+            c.glShaderSource(vertex_shader, 1, vertex_src.ptr, vertex_src.len);
+        }
         c.glCompileShader(vertex_shader);
         if (!WEB_BUILD) {
             var compile_success: c_int = undefined;
@@ -223,7 +233,7 @@ pub const Renderer = struct {
 
     pub fn render_app(self: *Self, ticks: u32, app: *App) void {
         self.ticks = ticks;
-        c.glClearColor(1.0, @intToFloat(f32, ticks) / 3000.0, app.position.x / 600.0, 1.0);
+        c.glClearColor(0.0, 0.0, 0.0, 1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
         const posx = app.position.x;
         const posy = app.position.y;
@@ -248,15 +258,17 @@ pub const Renderer = struct {
         c.glViewport(0, 0, @floatToInt(c_int, self.camera.window_size.x), @floatToInt(c_int, self.camera.window_size.y));
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
-        c.glUniform1i(c.glGetUniformLocation(shader.program, "tex"), 0);
+        c.glUniform1i(c.glGetUniformLocation(shader.program, helpers.handle_text("tex")), 0);
         c.glActiveTexture(c.GL_TEXTURE0);
         c.glBindTexture(c.GL_TEXTURE_2D, shader.texture);
         c.glBindVertexArray(self.vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
         if (shader.triangle_verts.items.len > 0 and shader.indices.items.len > 0) {
-            c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(VertexData) * @intCast(c_longlong, shader.triangle_verts.items.len), &shader.triangle_verts.items[0].position.x, c.GL_DYNAMIC_DRAW);
+            const vert_size = if (WEB_BUILD) NUM_FLOAT_IN_VERTEX_DATA * shader.triangle_verts.items.len else @sizeOf(VertexData) * @intCast(c_longlong, shader.triangle_verts.items.len);
+            c.glBufferData(c.GL_ARRAY_BUFFER, vert_size, &shader.triangle_verts.items[0].position.x, c.GL_DYNAMIC_DRAW);
             c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, self.ebo);
-            c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(c_uint) * @intCast(c_longlong, shader.indices.items.len), &shader.indices.items[0], c.GL_DYNAMIC_DRAW);
+            const elem_size = if (WEB_BUILD) shader.indices.items.len else @sizeOf(c_uint) * @intCast(c_longlong, shader.indices.items.len);
+            c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, elem_size, &shader.indices.items[0], c.GL_DYNAMIC_DRAW);
             c.glDrawElements(c.GL_TRIANGLES, @intCast(c_int, shader.indices.items.len), c.GL_UNSIGNED_INT, null);
         }
     }

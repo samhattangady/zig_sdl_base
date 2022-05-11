@@ -1,3 +1,5 @@
+const helpers = @import("helpers.zig");
+
 // Types
 pub const GLuint = c_uint;
 pub const GLint = c_int;
@@ -7,6 +9,7 @@ pub const GLfloat = f32;
 pub const GL_VERTEX_SHADER: c_uint = 35633;
 pub const GL_FRAGMENT_SHADER: c_uint = 35632;
 pub const GL_ARRAY_BUFFER: c_uint = 34962;
+pub const GL_ELEMENT_ARRAY_BUFFER = 0x8893;
 pub const GL_TRIANGLES: c_uint = 4;
 pub const GL_TRIANGLE_STRIP = 5;
 pub const GL_STATIC_DRAW: c_uint = 35044;
@@ -31,7 +34,7 @@ pub const GL_NO_ERROR = 0;
 pub const GL_FALSE = 0;
 pub const GL_TRUE = 1;
 pub const GL_UNPACK_ALIGNMENT = 3317;
-pub const GL_RED = 6403;
+pub const GL_RED = 0x1906;
 pub const GL_LINEAR = 9729;
 
 pub const GL_TEXTURE_WRAP_S = 10242;
@@ -40,7 +43,6 @@ pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
 pub const GL_FRAMEBUFFER = 0x8D40;
 pub const GL_DYNAMIC_DRAW = 0x88E8;
-pub const GL_ELEMENT_ARRAY_BUFFER = 0x8893;
 pub const GL_UNSIGNED_INT = 0x1405;
 
 // Helpers
@@ -55,7 +57,7 @@ pub extern fn glDepthFunc(_: c_uint) void;
 pub extern fn glBlendFunc(_: c_uint, _: c_uint) void;
 pub extern fn glClear(_: c_uint) void;
 pub extern fn glGetAttribLocation(_: c_uint, _: [*]const u8, _: c_uint) c_int;
-pub extern fn glGetUniformLocation(_: c_uint, _: [*]const u8) c_int;
+pub extern fn glGetUniformLocation(_: c_uint, _: helpers.WasmText) c_int;
 pub extern fn glUniform4fv(_: c_int, _: f32, _: f32, _: f32, _: f32) void;
 pub extern fn glUniform1i(_: c_int, _: c_int) void;
 pub extern fn glUniform1f(_: c_int, _: f32) void;
@@ -69,9 +71,9 @@ pub extern fn glGenBuffers(_: c_int, _: [*c]c_uint) void;
 pub extern fn glDeleteBuffers(_: c_int, _: [*c]c_uint) void;
 pub extern fn glDeleteBuffer(_: c_uint) void;
 pub extern fn glBindBuffer(_: c_uint, _: c_uint) void;
-pub extern fn glBufferData(_: c_uint, _: c_longlong, _: ?*const anyopaque, _: c_uint) void;
+pub extern fn glBufferData(_: c_uint, _: c_uint, _: ?*const anyopaque, _: c_uint) void;
 pub extern fn glPixelStorei(_: c_uint, _: c_int) void;
-pub extern fn glShaderSource(_: c_uint, _: c_uint, _: *const ?[*]const u8, _: c_uint) void;
+pub extern fn glShaderSource(_: c_uint, _: c_uint, _: [*]const u8, _: c_uint) void;
 pub extern fn glCreateShader(_: c_uint) c_uint;
 pub extern fn glCompileShader(_: c_uint) void;
 pub extern fn glAttachShader(_: c_uint, _: c_uint) void;
