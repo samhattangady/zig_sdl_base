@@ -217,14 +217,13 @@ pub const Renderer = struct {
         }
         c.glGenTextures(1, &self.base_shader.texture);
         c.glBindTexture(c.GL_TEXTURE_2D, self.base_shader.texture);
-        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, CIRCLE_TEXTURE_SIZE, CIRCLE_TEXTURE_SIZE, 0, c.GL_RED, c.GL_UNSIGNED_BYTE, &temp_bitmap[0]);
+        const format = if (WEB_BUILD) c.GL_RED_OUT else c.GL_RED;
+        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, CIRCLE_TEXTURE_SIZE, CIRCLE_TEXTURE_SIZE, 0, format, c.GL_UNSIGNED_BYTE, &temp_bitmap[0]);
         c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
         c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_NEAREST);
     }
 
     fn init_text_renderer(self: *Self) !void {
-        // BASIC_STEP1
-        if (true) return;
         c.glGenTextures(1, &self.text_shader.texture);
         c.glBindTexture(c.GL_TEXTURE_2D, self.text_shader.texture);
         c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, FONT_TEX_SIZE, FONT_TEX_SIZE, 0, c.GL_RED, c.GL_UNSIGNED_BYTE, &self.typesetter.texture_data[0]);
@@ -248,9 +247,8 @@ pub const Renderer = struct {
     fn draw_buffers(self: *Self) void {
         c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
         self.draw_shader_buffers(&self.base_shader);
-        // BASIC_STEP1
-        // self.fill_text_buffers();
-        // self.draw_shader_buffers(&self.text_shader);
+        self.fill_text_buffers();
+        self.draw_shader_buffers(&self.text_shader);
     }
 
     fn draw_shader_buffers(self: *Self, shader: *ShaderData) void {

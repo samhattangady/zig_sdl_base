@@ -34,7 +34,8 @@ pub const GL_NO_ERROR = 0;
 pub const GL_FALSE = 0;
 pub const GL_TRUE = 1;
 pub const GL_UNPACK_ALIGNMENT = 3317;
-pub const GL_RED = 0x1906;
+pub const GL_RED = 0x8229;
+pub const GL_RED_OUT = 0x1903;
 pub const GL_LINEAR = 9729;
 
 pub const GL_TEXTURE_WRAP_S = 10242;

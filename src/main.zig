@@ -8,7 +8,7 @@ const constants = @import("constants.zig");
 var app: App = undefined;
 var renderer: Renderer = undefined;
 var web_allocator = if (constants.WEB_BUILD) std.heap.GeneralPurposeAllocator(.{}){} else void;
-var web_start_ticks = if (constants.WEB_BUILD) @as(i64, 0) else void;
+var web_start_ticks = @as(i64, 0);
 
 pub fn main() anyerror!void {
     if (constants.WEB_BUILD) return;

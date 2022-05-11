@@ -190,8 +190,9 @@ const glGenTextures = (num, dataPtr) => {
   }
 }
 
-const glTexImage2D = (target, level, internalFormat, width, height, border, format, type, dataPtr, offset) => {
+const glTexImage2D = (target, level, internalFormat, width, height, border, format, type, dataPtr) => {
   const data = new Uint8Array(memory.buffer, dataPtr, width*height);
+  console.log(data);
   gl.texImage2D(target, level, internalFormat, width, height, border, format, type, data);
 };
 

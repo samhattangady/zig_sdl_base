@@ -3,3 +3,5 @@ pub usingnamespace @cImport({
     @cInclude("SDL.h");
     @cInclude("stb_truetype.h");
 });
+
+pub const milliTimestamp = @import("std").time.milliTimestamp;

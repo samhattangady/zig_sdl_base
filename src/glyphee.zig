@@ -32,7 +32,7 @@ const Vector4_gl = helpers.Vector4_gl;
 const BLACK: Vector4_gl = .{ .x = 24.0 / 255.0, .y = 24.0 / 255.0, .z = 24.0 / 255.0, .w = 1.0 };
 
 const GlyphData = struct {
-    glyphs: [96 * NUM_FONTS]stbtt_bakedchar = undefined,
+    glyphs: [96 * NUM_FONTS]c.stbtt_bakedchar = undefined,
 };
 
 const FontData = struct {
@@ -42,31 +42,11 @@ const FontData = struct {
     num_rows: usize = 0,
 };
 
-const stbtt_aligned_quad = if (constants.WEB_BUILD) struct {
-    x0: f32,
-    y0: f32,
-    s0: f32,
-    t0: f32,
-    x1: f32,
-    y1: f32,
-    s1: f32,
-    t1: f32,
-} else c.stbtt_aligned_quad;
-const stbtt_bakedchar = if (constants.WEB_BUILD) struct {
-    x0: u8,
-    y0: u8,
-    x1: u8,
-    y1: u8,
-    xoff: f32,
-    yoff: f32,
-    xadvance: f32,
-} else c.stbtt_bakedchar;
-
 const Glyph = struct {
     char: u8,
     font: FontType,
     color: Vector4_gl,
-    quad: stbtt_aligned_quad,
+    quad: c.stbtt_aligned_quad,
     z: f32,
 };
 
@@ -100,23 +80,19 @@ pub const TypeSetter = struct {
         // one doesn't support multiple fonts easily, and we've had to jump through some hoops.
         self.texture_data = try self.allocator.alloc(u8, FONT_TEX_SIZE * FONT_TEX_SIZE);
         // @@UnimplementedTrueType
-        if (constants.WEB_BUILD) {
-            return;
-        } else {
-            var row: usize = 0;
-            var glyphs_used: usize = 0;
-            var i: usize = 0;
-            while (i < NUM_FONTS) : (i += 1) {
-                const bitmap_index = row * FONT_TEX_SIZE;
-                const glyph_index = glyphs_used;
-                // TODO (09 Nov 2021 sam): Figure out the failure conditions on this.
-                const num_rows_used = c.stbtt_BakeFontBitmap(FONT_FILES[i], 0, FONT_SIZE, &self.texture_data[bitmap_index], FONT_TEX_SIZE, FONT_TEX_SIZE - @intCast(c_int, row), 32, 96, &self.glyph_data.glyphs[glyph_index]);
-                self.fonts_data[i].type_ = @intToEnum(FontType, @intCast(u2, i));
-                self.fonts_data[i].start_row = row;
-                self.fonts_data[i].start_glyph_index = glyph_index;
-                row += @intCast(usize, num_rows_used);
-                glyphs_used += 96;
-            }
+        var row: usize = 0;
+        var glyphs_used: usize = 0;
+        var i: usize = 0;
+        while (i < NUM_FONTS) : (i += 1) {
+            const bitmap_index = row * FONT_TEX_SIZE;
+            const glyph_index = glyphs_used;
+            // TODO (09 Nov 2021 sam): Figure out the failure conditions on this.
+            const num_rows_used = c.stbtt_BakeFontBitmap(FONT_FILES[i], 0, FONT_SIZE, &self.texture_data[bitmap_index], FONT_TEX_SIZE, FONT_TEX_SIZE - @intCast(c_int, row), 32, 96, &self.glyph_data.glyphs[glyph_index]);
+            self.fonts_data[i].type_ = @intToEnum(FontType, @intCast(u2, i));
+            self.fonts_data[i].start_row = row;
+            self.fonts_data[i].start_glyph_index = glyph_index;
+            row += @intCast(usize, num_rows_used);
+            glyphs_used += 96;
         }
     }
 
@@ -163,8 +139,7 @@ pub const TypeSetter = struct {
         const inv_tex_height = 1.0 / @intToFloat(f32, FONT_TEX_SIZE - font_data.start_row);
         const round_x = @floor((pos.x + glyph.xoff) + 0.5);
         const round_y = @floor((pos.y + glyph.yoff) + 0.5);
-        // @@UnimplementedTrueType
-        var quad: stbtt_aligned_quad = .{
+        var quad: c.stbtt_aligned_quad = .{
             .x0 = round_x,
             .y0 = round_y,
             .x1 = round_x + @intToFloat(f32, glyph.x1 - glyph.x0),
