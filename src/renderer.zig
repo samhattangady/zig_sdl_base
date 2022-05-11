@@ -226,7 +226,8 @@ pub const Renderer = struct {
     fn init_text_renderer(self: *Self) !void {
         c.glGenTextures(1, &self.text_shader.texture);
         c.glBindTexture(c.GL_TEXTURE_2D, self.text_shader.texture);
-        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, FONT_TEX_SIZE, FONT_TEX_SIZE, 0, c.GL_RED, c.GL_UNSIGNED_BYTE, &self.typesetter.texture_data[0]);
+        const format = if (WEB_BUILD) c.GL_RED_OUT else c.GL_RED;
+        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RED, FONT_TEX_SIZE, FONT_TEX_SIZE, 0, format, c.GL_UNSIGNED_BYTE, &self.typesetter.texture_data[0]);
         c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR);
     }
 

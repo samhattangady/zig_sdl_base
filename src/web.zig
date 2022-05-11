@@ -1,5 +1,26 @@
 const helpers = @import("helpers.zig");
 
+pub const stbtt_aligned_quad = struct {
+    x0: f32,
+    y0: f32,
+    s0: f32,
+    t0: f32,
+    x1: f32,
+    y1: f32,
+    s1: f32,
+    t1: f32,
+};
+
+pub const stbtt_bakedchar = struct {
+    x0: u16,
+    y0: u16,
+    x1: u16,
+    y1: u16,
+    xoff: f32,
+    yoff: f32,
+    xadvance: f32,
+};
+
 // Types
 pub const GLuint = c_uint;
 pub const GLint = c_int;

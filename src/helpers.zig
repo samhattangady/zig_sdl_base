@@ -365,6 +365,26 @@ pub const Vector4_gl = extern struct {
     pub fn is_equal_to(v1: *const Vector4_gl, v2: Vector4_gl) bool {
         return Vector4_gl.equals(v1.*, v2);
     }
+
+    pub fn json_serialize(self: *const Self, js: *JsonSerializer) !void {
+        try js.beginObject();
+        try js.objectField("x");
+        try js.emitNumber(self.x);
+        try js.objectField("y");
+        try js.emitNumber(self.y);
+        try js.objectField("z");
+        try js.emitNumber(self.z);
+        try js.objectField("w");
+        try js.emitNumber(self.w);
+        try js.endObject();
+    }
+
+    pub fn json_load(self: *Self, js: std.json.Value) void {
+        self.x = @floatCast(f32, js.Object.get("x").?.Float);
+        self.y = @floatCast(f32, js.Object.get("y").?.Float);
+        self.z = @floatCast(f32, js.Object.get("z").?.Float);
+        self.w = @floatCast(f32, js.Object.get("w").?.Float);
+    }
 };
 
 pub fn lerpf(start: f32, end: f32, t: f32) f32 {
@@ -633,3 +653,45 @@ pub fn handle_text(str: [:0]const u8) if (constants.WEB_BUILD) WasmText else [:0
         return str;
     }
 }
+
+const JSON_SERIALIZER_MAX_DEPTH = 32;
+pub const JsonWriter = std.io.Writer(*JsonStream, JsonStreamError, JsonStream.write);
+pub const JsonStreamError = error{JsonWriteError};
+pub const JsonSerializer = std.json.WriteStream(JsonWriter, JSON_SERIALIZER_MAX_DEPTH);
+pub const JsonStream = struct {
+    const Self = @This();
+    buffer: std.ArrayList(u8),
+
+    pub fn new(allocator: std.mem.Allocator) Self {
+        return Self{
+            .buffer = std.ArrayList(u8).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.buffer.deinit();
+    }
+
+    pub fn writer(self: *Self) JsonWriter {
+        return .{ .context = self };
+    }
+
+    pub fn write(self: *Self, bytes: []const u8) JsonStreamError!usize {
+        self.buffer.appendSlice(bytes) catch unreachable;
+        return bytes.len;
+    }
+
+    pub fn save_data_to_file(self: *Self, filepath: []const u8) !void {
+        // TODO (08 Dec 2021 sam): See whether we want to add a hash or base64 encoding
+        const file = try std.fs.cwd().createFile(filepath, .{});
+        defer file.close();
+        _ = try file.writeAll(self.buffer.items);
+        if (false) {
+            debug_print("saving to file {s}\n", .{filepath});
+        }
+    }
+
+    pub fn serializer(self: *Self) JsonSerializer {
+        return std.json.writeStream(self.writer(), JSON_SERIALIZER_MAX_DEPTH);
+    }
+};
