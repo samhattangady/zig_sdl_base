@@ -53,10 +53,12 @@ export fn web_init() void {
     if (!constants.WEB_BUILD) return;
     {
         const message = "hello from zig";
-        c.consoleLogS(message, message.len);
         c.console_log(message);
     }
     var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    c.console_log("reading file data/test.txt");
+    const contents = helpers.read_file_contents("data/test.txt", loading_arena.allocator()) catch unreachable;
+    c.console_log(contents.ptr);
     app = App.new(web_allocator.allocator(), loading_arena.allocator());
     {
         const message = "app new done";

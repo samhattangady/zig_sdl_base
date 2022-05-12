@@ -33,6 +33,50 @@ const u8ToNumber = (array) => {
   return number;
 }
 
+const getFileText = (path) => {
+    let request = new XMLHttpRequest();
+    request.open('GET', path, false);
+    request.send(null);
+    return request.responseText;
+}
+
+const readWebFile = (path, ptr, len) => {
+    path = wasmString(path);
+    console.log("requesting file data:", path);
+    // read text from URL location
+    const text = getFileText(path);
+    if (text.length != len) {
+      console.log("file length does not match requested length", path, len);
+      return false;
+    }
+    const fileContents = new Uint8Array(memory.buffer, ptr, len);
+    for (let i=0; i<len; i++) {
+      fileContents[i] = text.charCodeAt(i);
+    }
+    return true;    
+}
+
+const readWebFileSize = (path) => {
+    path = wasmString(path);
+    console.log("requesting file size of:", path);
+    // read text from URL location
+    const text = getFileText(path);
+    console.log("request=responsetext = ", text);
+    return text.length;
+}
+
+const wasmString = (ptr) => {
+  const bytes = new Uint8Array(memory.buffer, ptr, 1024);
+  let str = '';
+  for (let i = 0; ; i++) {
+    const c = String.fromCharCode(bytes[i]);
+    if (c == '\0') break;
+    str += c;
+  }
+  return str;
+
+}
+
 const parseWebText = (webText) => {
   // webText is a struct. We get it in binary as a BigInt. However, since the system
   // is little endian, we cannot directly read and parse the BigInt as is. We need to
@@ -76,7 +120,6 @@ const console_log = (value) => {
     str += c;
   }
   console.log('zig2:', str);
-  
 }
 
 const milliTimestamp = () => {
@@ -204,7 +247,6 @@ const glGenTextures = (num, dataPtr) => {
 
 const glTexImage2D = (target, level, internalFormat, width, height, border, format, type, dataPtr) => {
   const data = new Uint8Array(memory.buffer, dataPtr, width*height);
-  console.log(data);
   gl.texImage2D(target, level, internalFormat, width, height, border, format, type, data);
 };
 
@@ -225,7 +267,6 @@ const glShaderSource = (shader, count, data, len) => {
   for (let i = 0; i < len; i++) {
     str += String.fromCharCode(source[i]);
   }
-  console.log('shader source = ', str);
   gl.shaderSource(glShaders[shader], str);
 }
 
@@ -268,6 +309,8 @@ const glBindTexture = (target, textureId) => {
 var api = {
   consoleLogS: consoleLog,
   console_log,
+  readWebFile,
+  readWebFileSize,
   milliTimestamp,
   glClearColor,
   glClear,

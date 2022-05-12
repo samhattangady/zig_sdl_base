@@ -695,3 +695,49 @@ pub const JsonStream = struct {
         return std.json.writeStream(self.writer(), JSON_SERIALIZER_MAX_DEPTH);
     }
 };
+
+// TODO (12 May 2022 sam): Check if std has anything for this?
+fn c_strlen(str: [*]const u8) usize {
+    c.console_log("checking ctrlen");
+    c.console_log(str);
+    var size: usize = 0;
+    while (true) : (size += 1) {
+        if (str[size] == 0) break;
+    }
+    return size;
+}
+
+/// this reads the file into a buffer alloced by allocator. data to be freed by the
+/// caller.
+pub fn read_file_contents(path: []const u8, allocator: std.mem.Allocator) ![]u8 {
+    if (!constants.WEB_BUILD) {
+        const file = try std.fs.cwd().openFile(path, .{});
+        defer file.close();
+        const file_size = try file.getEndPos();
+        const data = try file.readToEndAlloc(allocator, file_size);
+        return data;
+    } else {
+        const size = c.readWebFileSize(path.ptr);
+        {
+            var buffer: [100]u8 = undefined;
+            const message = std.fmt.bufPrint(&buffer, "contents_size = {d}", .{size}) catch unreachable;
+            c.consoleLogS(message.ptr, message.len);
+        }
+        var data = try allocator.alloc(u8, size + 1);
+        {
+            var i: usize = 0;
+            while (i < size) : (i += 1) {
+                data[i] = '_';
+            }
+            data[size] = 0;
+        }
+        c.consoleLogS(data.ptr, data.len - 1);
+        const success = c.readWebFile(path.ptr, data.ptr, size);
+        if (!success) {
+            // not success.
+            return error.FileReadFailed;
+        }
+        c.console_log(data.ptr);
+        return data;
+    }
+}
