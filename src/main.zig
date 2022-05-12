@@ -54,6 +54,7 @@ export fn web_init() void {
     {
         const message = "hello from zig";
         c.consoleLogS(message, message.len);
+        c.console_log(message);
     }
     var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     app = App.new(web_allocator.allocator(), loading_arena.allocator());

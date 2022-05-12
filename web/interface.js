@@ -67,6 +67,18 @@ const consoleLog = (value, len) => {
   // console.log('zig2:', getString(value));
 };
 
+const console_log = (value) => {
+  const bytes = new Uint8Array(memory.buffer, value, 1024);
+  let str = '';
+  for (let i = 0; ; i++) {
+    const c = String.fromCharCode(bytes[i]);
+    if (c == '\0') break;
+    str += c;
+  }
+  console.log('zig2:', str);
+  
+}
+
 const milliTimestamp = () => {
   return BigInt(Date.now());
 }
@@ -255,6 +267,7 @@ const glBindTexture = (target, textureId) => {
 
 var api = {
   consoleLogS: consoleLog,
+  console_log,
   milliTimestamp,
   glClearColor,
   glClear,

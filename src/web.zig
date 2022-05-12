@@ -68,6 +68,7 @@ pub const GL_DYNAMIC_DRAW = 0x88E8;
 pub const GL_UNSIGNED_INT = 0x1405;
 
 // Helpers
+pub extern fn console_log(_: [*]const u8) void;
 pub extern fn consoleLogS(_: [*]const u8, _: c_uint) void;
 pub extern fn milliTimestamp() i64;
 
