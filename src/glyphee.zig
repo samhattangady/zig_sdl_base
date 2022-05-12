@@ -33,8 +33,8 @@ const BLACK: Vector4_gl = .{ .x = 24.0 / 255.0, .y = 24.0 / 255.0, .z = 24.0 / 2
 const DUMP_TEXT_DATA = false;
 const DUMP_TEXT_IMAGE_PATH = "data/fonts/text_atlas.png";
 const DUMP_TEXT_INFO_PATH = "data/fonts/text_info.json";
-const TEXT_IMAGE_DATA = if (constants.WEB_BUILD) @embedFile("../data/fonts/text_atlas.png") else void;
-const TEXT_IMAGE_INFO = if (constants.WEB_BUILD) @embedFile("../data/fonts/text_info.json") else void;
+const TEXT_IMAGE_DATA = if (!DUMP_TEXT_DATA) @embedFile("../data/fonts/text_atlas.png") else void;
+const TEXT_IMAGE_INFO = if (!DUMP_TEXT_DATA) @embedFile("../data/fonts/text_info.json") else void;
 
 comptime {
     if (constants.WEB_BUILD and DUMP_TEXT_DATA) {
@@ -189,7 +189,7 @@ pub const TypeSetter = struct {
     }
 
     fn load_font_data(self: *Self) !void {
-        if (false) {
+        if (DUMP_TEXT_DATA) {
             // if (!constants.WEB_BUILD) {
             // We load all the fonts into the same texture.
             // TODO (29 Jul 2021 sam): See if we should be using different API for text loading. The simple
@@ -210,36 +210,35 @@ pub const TypeSetter = struct {
                 row += @intCast(usize, num_rows_used);
                 glyphs_used += 96;
             }
-            if (DUMP_TEXT_DATA) {
-                std.debug.print("dumping text data\n", .{});
+            std.debug.print("dumping text data\n", .{});
+            {
+                const file = try std.fs.cwd().createFile(DUMP_TEXT_IMAGE_PATH, .{});
+                defer file.close();
+                _ = try file.writeAll(self.texture_data);
+            }
+            {
+                var stream = helpers.JsonStream.new(self.allocator);
+                defer stream.deinit();
+                var jser = stream.serializer();
+                jser.whitespace = std.json.StringifyOptions.Whitespace{ .indent = .{ .Space = 2 } };
+                var js = &jser;
                 {
-                    const file = try std.fs.cwd().createFile(DUMP_TEXT_IMAGE_PATH, .{});
-                    defer file.close();
-                    _ = try file.writeAll(self.texture_data);
-                }
-                {
-                    var stream = helpers.JsonStream.new(self.allocator);
-                    defer stream.deinit();
-                    var jser = stream.serializer();
-                    jser.whitespace = std.json.StringifyOptions.Whitespace{ .indent = .{ .Space = 2 } };
-                    var js = &jser;
-                    {
-                        try js.beginObject();
-                        try js.objectField("glyph_data");
-                        try self.glyph_data.json_serialize(js);
-                        try js.objectField("fonts_data");
-                        try js.beginArray();
-                        for (self.fonts_data) |font| {
-                            try js.arrayElem();
-                            try font.json_serialize(js);
-                        }
-                        try js.endArray();
-                        try js.endObject();
+                    try js.beginObject();
+                    try js.objectField("glyph_data");
+                    try self.glyph_data.json_serialize(js);
+                    try js.objectField("fonts_data");
+                    try js.beginArray();
+                    for (self.fonts_data) |font| {
+                        try js.arrayElem();
+                        try font.json_serialize(js);
                     }
-                    stream.save_data_to_file(DUMP_TEXT_INFO_PATH) catch unreachable;
+                    try js.endArray();
+                    try js.endObject();
                 }
+                stream.save_data_to_file(DUMP_TEXT_INFO_PATH) catch unreachable;
             }
         } else {
+            // TODO (12 May 2022 sam): Apparently there is a memory leak caused by this scope...
             self.texture_data = try self.allocator.alloc(u8, FONT_TEX_SIZE * FONT_TEX_SIZE);
             std.mem.copy(u8, self.texture_data, TEXT_IMAGE_DATA);
             var parser = std.json.Parser.init(self.allocator, false);
