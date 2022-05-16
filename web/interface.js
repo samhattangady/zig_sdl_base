@@ -35,16 +35,18 @@ const u8ToNumber = (array) => {
 
 const getFileText = (path) => {
     let request = new XMLHttpRequest();
+    // TODO (12 May 2022 sam): This is being deprecated... How can we do sync otherwise?
     request.open('GET', path, false);
     request.send(null);
+    if (request.status !== 200) return false;
     return request.responseText;
 }
 
 const readWebFile = (path, ptr, len) => {
     path = wasmString(path);
-    console.log("requesting file data:", path);
     // read text from URL location
     const text = getFileText(path);
+    if (text === false) return false;
     if (text.length != len) {
       console.log("file length does not match requested length", path, len);
       return false;
@@ -58,11 +60,45 @@ const readWebFile = (path, ptr, len) => {
 
 const readWebFileSize = (path) => {
     path = wasmString(path);
-    console.log("requesting file size of:", path);
     // read text from URL location
     const text = getFileText(path);
-    console.log("request=responsetext = ", text);
+    if (text === false) return -1;
     return text.length;
+}
+
+const getStorageText = (path) => {
+    const text = localStorage.getItem(path);
+    if (text === null) return false;
+    return text;
+}
+
+const readStorageFileSize = (path) => {
+  path = wasmString(path);
+  const text = getStorageText(path);
+  if (text === false) return -1;
+  return text.length;
+}
+
+const readStorageFile = (path, ptr, len) => {
+    path = wasmString(path);
+    // read text from URL location
+    const text = getStorageText(path);
+    if (text === false) return false;
+    if (text.length != len) {
+      console.log("file length does not match requested length", path, len);
+      return false;
+    }
+    const fileContents = new Uint8Array(memory.buffer, ptr, len);
+    for (let i=0; i<len; i++) {
+      fileContents[i] = text.charCodeAt(i);
+    }
+    return true;    
+}
+
+const writeStorageFile = (path, text) => {
+    path = wasmString(path);
+    text = wasmString(text);
+    localStorage.setItem(path, text);
 }
 
 const wasmString = (ptr) => {
@@ -74,8 +110,8 @@ const wasmString = (ptr) => {
     str += c;
   }
   return str;
-
 }
+
 
 const parseWebText = (webText) => {
   // webText is a struct. We get it in binary as a BigInt. However, since the system
@@ -311,6 +347,9 @@ var api = {
   console_log,
   readWebFile,
   readWebFileSize,
+  readStorageFileSize,
+  readStorageFile,
+  writeStorageFile,
   milliTimestamp,
   glClearColor,
   glClear,

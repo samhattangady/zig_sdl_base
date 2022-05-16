@@ -57,8 +57,16 @@ export fn web_init() void {
     }
     var loading_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     c.console_log("reading file data/test.txt");
-    const contents = helpers.read_file_contents("data/test.txt", loading_arena.allocator()) catch unreachable;
+    const contents = helpers.read_file_contents("data/test2.txt", loading_arena.allocator()) catch "could not find the file to read";
+    const saved = helpers.read_writable_file_contents("data/saved.txt", loading_arena.allocator()) catch "there is no saved file present";
+    {
+        var buffer: [100]u8 = undefined;
+        const m = std.fmt.bufPrint(&buffer, "app was last opened at {d}", .{c.milliTimestamp()}) catch unreachable;
+        buffer[m.len] = 0;
+        helpers.write_writable_file_contents("data/saved.txt", buffer[0 .. m.len + 1]) catch unreachable;
+    }
     c.console_log(contents.ptr);
+    c.console_log(saved.ptr);
     app = App.new(web_allocator.allocator(), loading_arena.allocator());
     {
         const message = "app new done";

@@ -73,6 +73,7 @@ pub const App = struct {
     quit: bool = false,
     position: Vector2 = .{},
     inputs: InputState = .{},
+    load_data: []u8 = undefined,
 
     pub fn new(allocator: std.mem.Allocator, arena: std.mem.Allocator) Self {
         return Self{

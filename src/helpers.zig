@@ -717,7 +717,11 @@ pub fn read_file_contents(path: []const u8, allocator: std.mem.Allocator) ![]u8 
         const data = try file.readToEndAlloc(allocator, file_size);
         return data;
     } else {
-        const size = c.readWebFileSize(path.ptr);
+        const raw_size = c.readWebFileSize(path.ptr);
+        if (raw_size < 0) {
+            return error.FileNotFound;
+        }
+        const size = @intCast(usize, raw_size);
         {
             var buffer: [100]u8 = undefined;
             const message = std.fmt.bufPrint(&buffer, "contents_size = {d}", .{size}) catch unreachable;
@@ -739,5 +743,40 @@ pub fn read_file_contents(path: []const u8, allocator: std.mem.Allocator) ![]u8 
         }
         c.console_log(data.ptr);
         return data;
+    }
+}
+
+/// this reads the file into a buffer alloced by allocator. data to be freed by the
+/// caller.
+/// writable file data is saved in html5 storage on web,
+pub fn read_writable_file_contents(path: []const u8, allocator: std.mem.Allocator) ![]u8 {
+    if (!constants.WEB_BUILD) {
+        return read_file_contents(path, allocator);
+    } else {
+        const raw_size = c.readStorageFileSize(path.ptr);
+        if (raw_size < 0) {
+            return error.FileNotFound;
+        }
+        const size = @intCast(usize, raw_size);
+        var data = try allocator.alloc(u8, size + 1);
+        data[size] = 0;
+        const success = c.readStorageFile(path.ptr, data.ptr, size);
+        if (!success) {
+            // not success.
+            return error.FileReadFailed;
+        }
+        return data;
+    }
+}
+
+/// writable file data is saved in html5 storage on web,
+pub fn write_writable_file_contents(path: []const u8, contents: []const u8) !void {
+    if (!constants.WEB_BUILD) {
+        const file = try std.fs.cwd().createFile(path, .{});
+        defer file.close();
+        _ = try file.writeAll(contents);
+    } else {
+        // TODO (16 May 2022 sam): do the error handling?
+        _ = c.writeStorageFile(path.ptr, contents.ptr);
     }
 }
