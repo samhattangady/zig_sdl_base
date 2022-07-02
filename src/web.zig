@@ -75,7 +75,7 @@ pub extern fn readWebFile(_: [*]const u8, _: [*]u8, _: c_uint) bool;
 pub extern fn readWebFileSize(_: [*]const u8) c_int;
 pub extern fn readStorageFile(_: [*]const u8, _: [*]u8, _: c_uint) bool;
 pub extern fn readStorageFileSize(_: [*]const u8) c_int;
-pub extern fn writeStorageFile(_: [*]const u8, _: [*]const u8) c_uint;
+pub extern fn writeStorageFile(_: [*]const u8, _: [*]const u8) bool;
 
 // GL
 pub extern fn glViewport(_: c_int, _: c_int, _: c_int, _: c_int) void;
