@@ -13,7 +13,7 @@ var web_start_ticks = @as(i64, 0);
 pub fn main() anyerror!void {
     if (constants.WEB_BUILD) return;
     // TODO (14 Jul 2021 sam): Figure out how to handle this safety flag.
-    var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = false }){};
     defer {
         _ = gpa.deinit();
     }

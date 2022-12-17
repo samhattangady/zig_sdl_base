@@ -21,17 +21,17 @@ pub fn build(b: *std.build.Builder) void {
         exe.setTarget(target);
         exe.addOptions("build_options", options);
         exe.setBuildMode(mode);
-        exe.addSystemIncludeDir("src");
+        exe.addSystemIncludePath("src");
         if (!web_build) {
-            exe.addSystemIncludeDir("dependencies/gl");
-            exe.addSystemIncludeDir("dependencies/stb_truetype-1.24");
+            exe.addSystemIncludePath("dependencies/gl");
+            exe.addSystemIncludePath("dependencies/stb_truetype-1.24");
             exe.addCSourceFile("dependencies/gl/glad.c", &[_][]const u8{"-std=c99"});
             exe.addCSourceFile("dependencies/stb_truetype-1.24/stb_truetype_impl.c", &[_][]const u8{"-std=c99"});
         }
         if (windows_build) {
-            exe.addSystemIncludeDir("C:/SDL2/include");
-            exe.addLibPath("C:/SDL2/lib/x64");
-            exe.addLibPath("C:/Program Files (x86)/Windows Kits/10/Lib/10.0.18362.0/um/x64");
+            exe.addSystemIncludePath("C:/SDL2/include");
+            exe.addLibraryPath("C:/SDL2/lib/x64");
+            exe.addLibraryPath("C:/Program Files (x86)/Windows Kits/10/Lib/10.0.18362.0/um/x64");
             b.installBinFile("C:/SDL2/lib/x64/SDL2.dll", "SDL2.dll");
         }
         exe.linkSystemLibrary("sdl2");
@@ -55,7 +55,7 @@ pub fn build(b: *std.build.Builder) void {
         exe.setTarget(target);
         exe.addOptions("build_options", options);
         exe.setBuildMode(mode);
-        exe.addSystemIncludeDir("src");
+        exe.addSystemIncludePath("src");
         exe.install();
         // TODO (12 May 2022 sam): This runs before the build. Figure it out.
         // b.updateFile("zig-out/lib/typeroo.wasm", "web/typeroo.wasm") catch unreachable;

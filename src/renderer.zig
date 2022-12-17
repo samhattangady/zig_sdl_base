@@ -17,8 +17,8 @@ const Camera = helpers.Camera;
 const App = @import("app.zig").App;
 const WEB_BUILD = constants.WEB_BUILD;
 
-const VERTEX_BASE_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("../data/shaders/web_vertex.glsl") else @embedFile("../data/shaders/vertex.glsl");
-const FRAGMENT_ALPHA_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("../data/shaders/web_fragment_texalpha.glsl") else @embedFile("../data/shaders/fragment_texalpha.glsl");
+const VERTEX_BASE_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("embeds/shaders/web_vertex.glsl") else @embedFile("embeds/shaders/vertex.glsl");
+const FRAGMENT_ALPHA_FILE: [:0]const u8 = if (WEB_BUILD) @embedFile("embeds/shaders/web_fragment_texalpha.glsl") else @embedFile("embeds/shaders/fragment_texalpha.glsl");
 
 const VertexData = struct {
     position: Vector3_gl = .{},
@@ -81,7 +81,7 @@ pub const Renderer = struct {
             const window = c.SDL_CreateWindow(window_title.ptr, c.SDL_WINDOWPOS_CENTERED, c.SDL_WINDOWPOS_CENTERED, @floatToInt(c_int, constants.DEFAULT_WINDOW_WIDTH * camera.window_scale), @floatToInt(c_int, constants.DEFAULT_WINDOW_HEIGHT * camera.window_scale), c.SDL_WINDOW_OPENGL).?;
             const gl_context = c.SDL_GL_CreateContext(window);
             _ = c.SDL_GL_MakeCurrent(window, gl_context);
-            _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, c.SDL_GL_GetProcAddress));
+            _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, &c.SDL_GL_GetProcAddress));
             self = Self{
                 .window = window,
                 .renderer = undefined,
@@ -257,7 +257,7 @@ pub const Renderer = struct {
         c.glViewport(0, 0, @floatToInt(c_int, self.camera.window_size.x), @floatToInt(c_int, self.camera.window_size.y));
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
-        c.glUniform1i(c.glGetUniformLocation(shader.program, helpers.handle_text("tex")), 0);
+        c.glUniform1i(c.glGetUniformLocation(shader.program, "tex"), 0);
         c.glActiveTexture(c.GL_TEXTURE0);
         c.glBindTexture(c.GL_TEXTURE_2D, shader.texture);
         c.glBindVertexArray(self.vao);

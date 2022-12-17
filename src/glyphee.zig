@@ -11,9 +11,9 @@ pub const FontType = enum {
     /// Font for large amounts of text. Easier to read. Legible at small sizes
     info,
 };
-const DEBUG_FONT_FILE = @embedFile("../data/fonts/JetBrainsMono/ttf/JetBrainsMono-Light.ttf");
-const DISPLAY_FONT_FILE = @embedFile("../data/fonts/Leander/Leander.ttf");
-const INFO_FONT_FILE = @embedFile("../data/fonts/Goudy/goudy_bookletter_1911.otf");
+const DEBUG_FONT_FILE = @embedFile("embeds/fonts/JetBrainsMono/ttf/JetBrainsMono-Light.ttf");
+const DISPLAY_FONT_FILE = @embedFile("embeds/fonts/Leander/Leander.ttf");
+const INFO_FONT_FILE = @embedFile("embeds/fonts/Goudy/goudy_bookletter_1911.otf");
 const NUM_FONTS = @typeInfo(FontType).Enum.fields.len;
 const FONT_FILES = [NUM_FONTS][:0]const u8{
     DEBUG_FONT_FILE,
@@ -33,8 +33,8 @@ const BLACK: Vector4_gl = .{ .x = 24.0 / 255.0, .y = 24.0 / 255.0, .z = 24.0 / 2
 const DUMP_TEXT_DATA = false;
 const DUMP_TEXT_IMAGE_PATH = "data/fonts/text_atlas.png";
 const DUMP_TEXT_INFO_PATH = "data/fonts/text_info.json";
-const TEXT_IMAGE_DATA = if (!DUMP_TEXT_DATA) @embedFile("../data/fonts/text_atlas.png") else void;
-const TEXT_IMAGE_INFO = if (!DUMP_TEXT_DATA) @embedFile("../data/fonts/text_info.json") else void;
+const TEXT_IMAGE_DATA = if (!DUMP_TEXT_DATA) @embedFile("embeds/fonts/text_atlas.png") else void;
+const TEXT_IMAGE_INFO = if (!DUMP_TEXT_DATA) @embedFile("embeds/fonts/text_info.json") else void;
 
 comptime {
     if (constants.WEB_BUILD and DUMP_TEXT_DATA) {
@@ -285,7 +285,6 @@ pub const TypeSetter = struct {
 
     // TODO (07 May 2021 sam): Text also scales with the zoom. We don't want that to be the case.
     pub fn draw_char_color_font(self: *Self, pos: Vector2, char: u8, z: f32, camera: *const Camera, color: Vector4_gl, font: FontType) Vector2 {
-        _ = z;
         // TODO (20 Sep 2021 sam): Should we be using/saving camera somewhere here?
         _ = camera;
         const font_data = self.fonts_data[@enumToInt(font)];
